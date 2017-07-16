@@ -16,6 +16,11 @@
 
 #define MAX_HTTP_SIZE 8192                 /* size of buffer to allocate */
 
+int scheduler(){
+   printf("testing scheduler output\n");
+   
+   return 0;
+}
 
 /* This function takes a file handle to a client, reads in the request, 
  *    parses the request, and sends back the requested file.  If the
@@ -98,23 +103,29 @@ static void serve_client( int fd ) {
  * Returns: an integer status code, 0 for success, something else for error.
  */
 int main( int argc, char **argv ) {
-  int port = -1;                                    /* server port # */
-  int fd;                                           /* client file descriptor */
 
-  /* check for and process parameters 
-   */
+  scheduler();
+
+  /*   
+  int port = -1;                                    // server port # 
+  int fd;                                           // client file descriptor 
+
+  // check for and process parameters 
+  // 
   if( ( argc < 2 ) || ( sscanf( argv[1], "%d", &port ) < 1 ) ) {
     printf( "usage: sms <port>\n" );
     return 0;
   }
 
-  network_init( port );                             /* init network module */
+  network_init( port );                             // init network module 
 
-  for( ;; ) {                                       /* main loop */
-    network_wait();                                 /* wait for clients */
+  for( ;; ) {                                       // main loop 
+    network_wait();                                 // wait for clients 
 
-    for( fd = network_open(); fd >= 0; fd = network_open() ) { /* get clients */
-      serve_client( fd );                           /* process each client */
+    for( fd = network_open(); fd >= 0; fd = network_open() ) { // get clients 
+      serve_client( fd );                           // process each client 
     }
   }
+  */
 }
+
