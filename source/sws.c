@@ -20,7 +20,25 @@
 int scheduler(char * schedulerType){
    // get console command args
    //
-   printf(schedulerType);
+   if (strcmp(schedulerType, "RR")== 0 ){
+     // do round robin code
+     printf("Round Robin scheduler selected\n");
+   }
+   else if (strcmp(schedulerType, "SJF") == 0)
+   {
+      // do shortest job first code
+     printf("Shortest Job First scheduler selected\n");
+   }
+   else if (strcmp(schedulerType, "MLFB") == 0)
+   {
+      // do mulitlevel feedback queue
+     printf("Multilevel Feedback Queue scheduler selected\n");
+   }
+   else 
+   {
+     printf("Error: unknown scheduler selected.\n"); 
+   }
+
    return 0;
 }
 
@@ -130,7 +148,7 @@ int main( int argc, char **argv ) {
   }
   */
 
-  if (sizeof(argv > 2))
+  if (argc > 3)
   {                                                 // append any extra args to string
     printf("WARNING: Extra arguments encountered:\n");
     for (i = 3; i < argc; i++)
@@ -140,5 +158,6 @@ int main( int argc, char **argv ) {
   }
 
   scheduler(schedulerType);
+
 }
 
