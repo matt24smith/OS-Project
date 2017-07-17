@@ -36,7 +36,8 @@ int scheduler(char * schedulerType){
    }
    else 
    {
-     printf("Error: unknown scheduler selected.\n"); 
+     printf("Error: unknown scheduler selected.\n");
+     printf("Please select one of 'RR', 'SJF', or 'MLFB'\n"); 
    }
 
    return 0;
@@ -127,13 +128,15 @@ int main( int argc, char **argv ) {
   int port = -1;                                    // server port # 
   int fd;                                           // client file descriptor 
   char * schedulerType = malloc(sizeof(argv[2]) * sizeof(char));
-  strcpy(schedulerType, argv[2]);                   //scheduler type as argv
+  if (argc >= 3) {
+    strcpy(schedulerType, argv[2]);                   //scheduler type as argv
+  }
   int i; //used in the loop later, do not delete
 
   // check for and process parameters 
 
-  if( ( argc < 2 ) || ( sscanf( argv[1], "%d", &port ) < 1 ) ) {
-    printf( "usage: sms <port>\n" );
+  if( ( argc < 3 ) || ( sscanf( argv[1], "%d", &port ) < 1 ) ) {
+    printf( "usage: sws <port> <scheduler>\n" );
     return 0;
   }
   /*
