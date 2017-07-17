@@ -15,10 +15,12 @@
 #include "network.h"
 
 #define MAX_HTTP_SIZE 8192                 /* size of buffer to allocate */
+#define MAX_INPUT_LINE 255                //max line length to accept as input
 
-int scheduler(){
-   printf("testing scheduler output\n");
-   
+int scheduler(char * schedulerType){
+   // get console command args
+   //
+   printf(schedulerType);
    return 0;
 }
 
@@ -104,19 +106,19 @@ static void serve_client( int fd ) {
  */
 int main( int argc, char **argv ) {
 
-  scheduler();
-
-  /*   
   int port = -1;                                    // server port # 
   int fd;                                           // client file descriptor 
+  char * schedulerType = malloc(sizeof(argv[2]) * sizeof(char));
+  strcpy(schedulerType, argv[2]);                   //scheduler type as argv
+  int i; //used in the loop later, do not delete
 
   // check for and process parameters 
-  // 
+
   if( ( argc < 2 ) || ( sscanf( argv[1], "%d", &port ) < 1 ) ) {
     printf( "usage: sms <port>\n" );
     return 0;
   }
-
+  /*
   network_init( port );                             // init network module 
 
   for( ;; ) {                                       // main loop 
@@ -127,5 +129,16 @@ int main( int argc, char **argv ) {
     }
   }
   */
+
+  if (sizeof(argv > 2))
+  {                                                 // append any extra args to string
+    printf("WARNING: Extra arguments encountered:\n");
+    for (i = 3; i < argc; i++)
+    {
+      printf("argv[%d]: %s\n", i, argv[i]);  
+    }
+  }
+
+  scheduler(schedulerType);
 }
 
