@@ -17,9 +17,25 @@
 #define MAX_HTTP_SIZE 8192                 /* size of buffer to allocate */
 #define MAX_INPUT_LINE 255                //max line length to accept as input
 
+struct RequestControlTable {
+   // This is the request control table to store state info for each request by
+   // the client.
+   // It should be initialized as an array of RequestControlTables and
+   // should associate a spot in the array with a request from the client
+   // - Matt
+   
+   int sequenceNumber;  //similar to process ID. sequence numbers start at 1
+   int fileDescriptor;  //returned by network_wait() in network.c
+   FILE * fileName;     //filename given by the client
+   int bytesRemaining;  //the number of bytes remaining to be sent
+   int quantum;         //max number of bytes to send
+}
+
+
+
 int scheduler(char * schedulerType){
    // get console command args
-   //
+   
    if (strcmp(schedulerType, "RR")== 0 ){
      // do round robin code
      printf("Round Robin scheduler selected\n");
