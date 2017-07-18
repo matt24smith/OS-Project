@@ -25,11 +25,11 @@ struct RequestControlTable {
    // - Matt
    
    int sequenceNumber;  //similar to process ID. sequence numbers start at 1
-   int fileDescriptor;  //returned by network_wait() in network.c
+   int fileDescriptor;  //returned by network_wait()
    FILE * fileName;     //filename given by the client
    int bytesRemaining;  //the number of bytes remaining to be sent
    int quantum;         //max number of bytes to send
-}
+};
 
 
 
