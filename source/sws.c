@@ -25,39 +25,12 @@ struct RequestControlTable {
    // - Matt
    
    int sequenceNumber;  //similar to process ID. sequence numbers start at 1
-   int fileDescriptor;  //returned by network_wait()
+   int fileDescriptor;  //returned by network_wait() in network.h
    FILE * fileName;     //filename given by the client
    int bytesRemaining;  //the number of bytes remaining to be sent
    int quantum;         //max number of bytes to send
 };
 
-
-
-int scheduler(char * schedulerType){
-   // get console command args
-   
-   if (strcmp(schedulerType, "RR")== 0 ){
-     // do round robin code
-     printf("Round Robin scheduler selected\n");
-   }
-   else if (strcmp(schedulerType, "SJF") == 0)
-   {
-      // do shortest job first code
-     printf("Shortest Job First scheduler selected\n");
-   }
-   else if (strcmp(schedulerType, "MLFB") == 0)
-   {
-      // do mulitlevel feedback queue
-     printf("Multilevel Feedback Queue scheduler selected\n");
-   }
-   else 
-   {
-     printf("Error: unknown scheduler selected.\n");
-     printf("Please select one of 'RR', 'SJF', or 'MLFB'\n"); 
-   }
-
-   return 0;
-}
 
 /* This function takes a file handle to a client, reads in the request, 
  *    parses the request, and sends back the requested file.  If the
@@ -67,7 +40,7 @@ int scheduler(char * schedulerType){
  *             fd : the file descriptor to the client connection
  * Returns: None
  */
-static void serve_client( int fd ) {
+static void serve_client( int fd, char * schedulerType ) {
   static char *buffer;                              /* request buffer */
   char *req = NULL;                                 /* ptr to req file */
   char *brk;                                        /* state used by strtok */
@@ -75,6 +48,30 @@ static void serve_client( int fd ) {
   FILE *fin;                                        /* input file handle */
   int len;                                          /* length of data read */
 
+  // Here each client's requests should be scheduled
+  // Later, multithreading will allow multiple clients to be scheduled at once
+  if (strcmp(schedulerType, "RR")== 0 ){
+    // do round robin code
+    printf("Round Robin scheduler selected\n");
+  }
+  else if (strcmp(schedulerType, "SJF") == 0)
+  {
+    // do shortest job first code
+    printf("Shortest Job First scheduler selected\n");
+  }
+  else if (strcmp(schedulerType, "MLFB") == 0)
+  {
+    // do mulitlevel feedback queue
+    printf("Multilevel Feedback Queue scheduler selected\n");
+  }
+  else 
+  {
+    printf("Error: unknown scheduler selected.\n");
+    printf("Please select one of 'RR', 'SJF', or 'MLFB'\n"); 
+    abort();
+  }
+
+  // TODO: add 8kb, 64kb, and RR buffer queues for MFLB scheduling
   if( !buffer ) {                                   /* 1st time, alloc buffer */
     buffer = malloc( MAX_HTTP_SIZE );
     if( !buffer ) {                                 /* error check */
@@ -147,7 +144,6 @@ int main( int argc, char **argv ) {
   if (argc >= 3) {
     strcpy(schedulerType, argv[2]);                   //scheduler type as argv
   }
-  int i; //used in the loop later, do not delete
 
   // check for and process parameters 
 
@@ -155,28 +151,27 @@ int main( int argc, char **argv ) {
     printf( "usage: sws <port> <scheduler>\n" );
     return 0;
   }
-  /*
-  network_init( port );                             // init network module 
-
-  for( ;; ) {                                       // main loop 
-    network_wait();                                 // wait for clients 
-
-    for( fd = network_open(); fd >= 0; fd = network_open() ) { // get clients 
-      serve_client( fd );                           // process each client 
-    }
-  }
-  */
-
-  if (argc > 3)
-  {                                                 // append any extra args to string
+  else if (argc > 3)
+  {
+    //This code exists for verbose error checking at runtime
     printf("WARNING: Extra arguments encountered:\n");
+    int i; 
     for (i = 3; i < argc; i++)
     {
       printf("argv[%d]: %s\n", i, argv[i]);  
     }
   }
 
-  scheduler(schedulerType);
+  network_init( port );                             // init network module 
+
+  for( ;; ) {                                       // main loop 
+    network_wait();                                 // wait for clients 
+
+    for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
+    {
+      serve_client( fd, schedulerType );            // process each client 
+    }
+  }
 
 }
 
