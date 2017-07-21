@@ -15,6 +15,9 @@
 
 #include "network.h"
 
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #define MAX_HTTP_SIZE 8192                 /* size of buffer to allocate */
 #define MAX_INPUT_LINE 255                //max line length to accept as input
 
@@ -149,6 +152,7 @@ int main( int argc, char **argv ) {
   bool rr = false;
   bool sjf = false;
   bool mlfb = false;
+  struct stat finfo;
 
   if (strcmp(schedulerType, "RR")== 0 ){
     // do round robin code
@@ -179,6 +183,14 @@ int main( int argc, char **argv ) {
 
     for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
     {
+      
+      if( stat("notempty.txt", &finfo) == 0 ){ 
+        printf("Size of file %d is %zu \n", fd, finfo.st_size);
+      }
+      else {
+        printf("There was an error with stat :(\n");
+      }
+      
       serve_client( fd );            // process each client 
     }
   }
