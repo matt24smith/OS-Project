@@ -152,7 +152,6 @@ int main( int argc, char **argv ) {
   bool rr = false;
   bool sjf = false;
   bool mlfb = false;
-  struct stat finfo;
 
   if (strcmp(schedulerType, "RR")== 0 ){
     // do round robin code
@@ -183,9 +182,10 @@ int main( int argc, char **argv ) {
 
     for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
     {
+      struct stat finfo;
       
-      if( stat("notempty.txt", &finfo) == 0 ){ 
-        printf("Size of file %d is %zu \n", fd, finfo.st_size);
+      if( fstat(fd, &finfo) == 0 ){ 
+        printf("Size of file %d is %zu \n", fd, finfo.st_size); //This always returns a size of 0
       }
       else {
         printf("There was an error with stat :(\n");
