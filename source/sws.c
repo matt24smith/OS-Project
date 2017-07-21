@@ -51,14 +51,8 @@ static void serve_client( int fd ) {
 
   // TODO: add 8kb, 64kb, and RR buffer queues for MLFB scheduling
   if( !buffer ) {                                   /* 1st time, alloc buffer */
-    if (mlfb){
-      // mlfb buffer will have to be either 8kb, 64kb, or RR
-      buffer = malloc( MAX_HTTP_SIZE );
-    }
-    else {
 
-      buffer = malloc( MAX_HTTP_SIZE );
-    }
+    buffer = malloc( MAX_HTTP_SIZE );
 
     if( !buffer ) {                                 /* error check */
       perror( "Error while allocating memory" );
