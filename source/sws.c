@@ -11,13 +11,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "network.h"
 
 #define MAX_HTTP_SIZE 8192                 /* size of buffer to allocate */
 #define MAX_INPUT_LINE 255                //max line length to accept as input
 
-struct RequestControlTable {
+typedef struct {
    // This is the request control table to store state info for each request by
    // the client.
    // It should be initialized as an array of RequestControlTables and
@@ -29,7 +30,7 @@ struct RequestControlTable {
    FILE * fileName;     //filename given by the client
    int bytesRemaining;  //the number of bytes remaining to be sent
    int quantum;         //max number of bytes to send
-};
+}RequestControlBlock; 
 
 
 /* This function takes a file handle to a client, reads in the request, 
@@ -40,7 +41,7 @@ struct RequestControlTable {
  *             fd : the file descriptor to the client connection
  * Returns: None
  */
-static void serve_client( int fd, char * schedulerType ) {
+static void serve_client( int fd ) {
   static char *buffer;                              /* request buffer */
   char *req = NULL;                                 /* ptr to req file */
   char *brk;                                        /* state used by strtok */
@@ -48,32 +49,17 @@ static void serve_client( int fd, char * schedulerType ) {
   FILE *fin;                                        /* input file handle */
   int len;                                          /* length of data read */
 
-  // Here each client's requests should be scheduled
-  // Later, multithreading will allow multiple clients to be scheduled at once
-  if (strcmp(schedulerType, "RR")== 0 ){
-    // do round robin code
-    printf("Round Robin scheduler selected\n");
-  }
-  else if (strcmp(schedulerType, "SJF") == 0)
-  {
-    // do shortest job first code
-    printf("Shortest Job First scheduler selected\n");
-  }
-  else if (strcmp(schedulerType, "MLFB") == 0)
-  {
-    // do mulitlevel feedback queue
-    printf("Multilevel Feedback Queue scheduler selected\n");
-  }
-  else 
-  {
-    printf("Error: unknown scheduler selected.\n");
-    printf("Please select one of 'RR', 'SJF', or 'MLFB'\n"); 
-    abort();
-  }
-
-  // TODO: add 8kb, 64kb, and RR buffer queues for MFLB scheduling
+  // TODO: add 8kb, 64kb, and RR buffer queues for MLFB scheduling
   if( !buffer ) {                                   /* 1st time, alloc buffer */
-    buffer = malloc( MAX_HTTP_SIZE );
+    if (mlfb){
+      // mlfb buffer will have to be either 8kb, 64kb, or RR
+      buffer = malloc( MAX_HTTP_SIZE );
+    }
+    else {
+
+      buffer = malloc( MAX_HTTP_SIZE );
+    }
+
     if( !buffer ) {                                 /* error check */
       perror( "Error while allocating memory" );
       abort();
@@ -164,12 +150,42 @@ int main( int argc, char **argv ) {
 
   network_init( port );                             // init network module 
 
+  // Here each client's requests should be scheduled
+  // Later, multithreading will allow multiple clients to be scheduled at once
+  bool rr = false;
+  bool sjf = false;
+  bool mlfb = false;
+
+  if (strcmp(schedulerType, "RR")== 0 ){
+    // do round robin code
+    printf("Round Robin scheduler selected\n");
+    rr = true;
+  }
+  else if (strcmp(schedulerType, "SJF") == 0)
+  {
+    // do shortest job first code
+    printf("Shortest Job First scheduler selected\n");
+    sjf = true;
+  }
+  else if (strcmp(schedulerType, "MLFB") == 0)
+  {
+    // do mulitlevel feedback queue
+    printf("Multilevel Feedback Queue scheduler selected\n");
+    mlfb = true;
+  }
+  else 
+  {
+    printf("Error: unknown scheduler selected.\n");
+    printf("Please select one of 'RR', 'SJF', or 'MLFB'\n"); 
+    abort();
+  }
+
   for( ;; ) {                                       // main loop 
     network_wait();                                 // wait for clients 
 
     for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
     {
-      serve_client( fd, schedulerType );            // process each client 
+      serve_client( fd );            // process each client 
     }
   }
 
