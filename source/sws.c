@@ -77,6 +77,7 @@ static void serve_client( int fd ) {
   if( tmp && !strcmp( "GET", tmp ) ) {
     req = strtok_r( NULL, " ", &brk );
   }
+
  
   if( !req ) {                                      /* is req valid? */
     len = sprintf( buffer, "HTTP/1.1 400 Bad request\n\n" );
@@ -89,7 +90,21 @@ static void serve_client( int fd ) {
       write( fd, buffer, len );                     /* if not, send err */
     } else {                                        /* if so, send file */
       len = sprintf( buffer, "HTTP/1.1 200 OK\n\n" );/* send success code */
+  
+
       write( fd, buffer, len );
+      struct stat finfo;
+      int file = 0;
+      //printf("Request from client:\t%s\n", req);
+      file = fileno(fin);
+      if (fstat(file, &finfo) == 0) {
+         printf("File %d size: %ld\n", file, finfo.st_size);
+      }
+      else {
+         printf("Stat error:(\n");
+      }
+
+
 
       do {                                          /* loop, read & send file */
         len = fread( buffer, 1, MAX_HTTP_SIZE, fin );  /* read file chunk */
@@ -182,15 +197,27 @@ int main( int argc, char **argv ) {
 
     for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
     {
+      /*
       struct stat finfo;
-      
+      static char *buffer;
+      char * brk; 
+      buffer = malloc( MAX_HTTP_SIZE );
+      memset (buffer, 0, MAX_HTTP_SIZE );
+      read(fd, 0, MAX_HTTP_SIZE);
+      char * tmp;
+      char * req = NULL;
+      tmp = strtok_r( buffer, " ", &brk );              // parse request 
+      req = strtok_r(NULL, " ", &brk );
+      lseek(fd, 1, SEEK_SET);
+
       if( fstat(fd, &finfo) == 0 ){ 
         printf("Size of file %d is %zu \n", fd, finfo.st_size); //This always returns a size of 0
+        printf("Request:\t%s\t%s\n", tmp, req);
       }
       else {
         printf("There was an error with stat :(\n");
       }
-      
+      */
       serve_client( fd );            // process each client 
     }
   }
