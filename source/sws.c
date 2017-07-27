@@ -21,7 +21,7 @@
 #define MAX_HTTP_SIZE 8192                 /* size of buffer to allocate */
 #define MAX_INPUT_LINE 255                //max line length to accept as input
 
-typedef struct {
+typedef struct RequestControlBlock{
    // This is the request control table to store state info for each request by
    // the client.
    // It should be initialized as an array of RequestControlTables and
@@ -35,6 +35,11 @@ typedef struct {
    int quantum;         //max number of bytes to send
 }RequestControlBlock; 
 
+typedef struct RequestControlBlock * rcbPtr;
+
+bool rr = false;
+bool sjf = false;
+bool mlfb = false;
 
 /* This function takes a file handle to a client, reads in the request, 
  *    parses the request, and sends back the requested file.  If the
@@ -91,11 +96,10 @@ static void serve_client( int fd ) {
     } else {                                        /* if so, send file */
       len = sprintf( buffer, "HTTP/1.1 200 OK\n\n" );/* send success code */
   
-
+      // Read file size
       write( fd, buffer, len );
       struct stat finfo;
       int file = 0;
-      //printf("Request from client:\t%s\n", req);
       file = fileno(fin);
       if (fstat(file, &finfo) == 0) {
          printf("File %d size: %ld\n", file, finfo.st_size);
@@ -103,7 +107,6 @@ static void serve_client( int fd ) {
       else {
          printf("Stat error:(\n");
       }
-
 
 
       do {                                          /* loop, read & send file */
@@ -162,11 +165,6 @@ int main( int argc, char **argv ) {
 
   network_init( port );                             // init network module 
 
-  // Here each client's requests should be scheduled
-  // Later, multithreading will allow multiple clients to be scheduled at once
-  bool rr = false;
-  bool sjf = false;
-  bool mlfb = false;
 
   if (strcmp(schedulerType, "RR")== 0 ){
     // do round robin code
@@ -191,6 +189,9 @@ int main( int argc, char **argv ) {
     printf("Please select one of 'RR', 'SJF', or 'MLFB'\n"); 
     abort();
   }
+
+  //allocate memory for request control table
+  rcbPtr RequestControlBlock = (rcbPtr)malloc(sizeof(RequestControlBlock)*64);
 
   for( ;; ) {                                       // main loop 
     network_wait();                                 // wait for clients 
