@@ -98,18 +98,19 @@ static void serve_client( int fd ) {
       } else {                                        /* if so, send file */
          len = sprintf( buffer, "HTTP/1.1 200 OK\n\n" );/* send success code */
 
+         /*
          // Read file size
          write( fd, buffer, len );
          struct stat finfo;
          int file = 0;
          file = fileno(fin);
          if (fstat(file, &finfo) == 0) {
-            printf("File %d size: %ld\n", file, finfo.st_size);
+         printf("File %d size: %ld\n", file, finfo.st_size);
          }
          else {
-            printf("Stat error:(\n");
+         printf("Stat error:(\n");
          }
-
+         */
 
 
          do {                                          /* loop, read & send file */
@@ -204,7 +205,6 @@ RequestControlBlock process_client( int fd ) {
             }
 
 
-
          }
          else {
             printf("Error accessing file :(\n");
@@ -216,7 +216,51 @@ RequestControlBlock process_client( int fd ) {
    }
 
    close( fd );                                     /* close client connectuin*/
+
    return newBlock;
+}
+
+int printrcb(RequestControlBlock b[]){
+
+   int i;
+   for (i = 0; i < seqCounter; i++){
+      printf("SequenceNumber\t%d\n", b[i].sequenceNumber);
+      printf("fileDescriptor\t%d\n", b[i].fileDescriptor);
+      printf("bytes remaining\t%d\n", b[i].bytesRemaining);
+      printf("quantum\t%d\n", b[i].quantum);
+      printf("\n");
+   }
+   return 0;
+
+}
+
+RequestControlBlock * scheduler(RequestControlBlock rct[]){
+   int i, j, pos;
+   int n = seqCounter;
+   RequestControlBlock temp;
+
+   if (sjf && !rr && !mlfb){
+      for (i = 0; i < n; i++){
+         pos = i;
+         for (j = i+1; j<n; j++){
+            if (rct[j].bytesRemaining<rct[pos].bytesRemaining){
+               pos = j;
+            }
+         }
+         temp = rct[i];
+         rct[i]=rct[pos];
+         rct[pos] = temp;
+
+      }
+   }
+   else if (rr && !sjf && !mlfb){
+      // do round robin quantum
+   }
+   else if (mlfb && !sjf && !rr) {
+      // do mlfb quantum
+   }
+
+   return rct;
 }
 
 
@@ -258,7 +302,6 @@ int main( int argc, char **argv ) {
 
    network_init( port );                             // init network module 
 
-
    if (strcmp(schedulerType, "RR")== 0 ){
       // do round robin code
       printf("Round Robin scheduler selected\n");
@@ -284,23 +327,27 @@ int main( int argc, char **argv ) {
    }
 
    //allocate memory for request control table
-   rcbPtr RequestControlBlock = (rcbPtr)malloc(sizeof(RequestControlBlock));
+   //rcbPtr RequestControlBlock = (rcbPtr)malloc(sizeof(RequestControlBlock));
+
+   network_wait();
+   RequestControlBlock table[64];
 
    for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
    {
-      process_client(fd);
+      RequestControlBlock b;
+      b = process_client(fd);
+      table[seqCounter] = b;
    }
+      printrcb(table);
 
-   printf("Loop 1 done\n");
 
    for( ;; ) {                                       // main loop 
-      network_wait();                                 // wait for clients 
+      //network_wait();                                 // wait for clients 
 
       for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
       {
          serve_client( fd );            // process each client 
       }
-      printf("Loop 2 done\n");
    }
 
 }
