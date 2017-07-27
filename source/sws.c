@@ -192,7 +192,6 @@ RequestControlBlock process_client( int fd ) {
             newBlock.fileName = fin;
             newBlock.bytesRemaining = finfo.st_size;
 
-            seqCounter++;
 
             if (sjf && !rr && !mlfb){
                newBlock.quantum = finfo.st_size;
@@ -204,6 +203,7 @@ RequestControlBlock process_client( int fd ) {
                // do mlfb quantum
             }
 
+            seqCounter++;
 
          }
          else {
@@ -221,13 +221,14 @@ RequestControlBlock process_client( int fd ) {
 }
 
 int printrcb(RequestControlBlock b[]){
+   printf("Number of control blocks:\t%d\n", (seqCounter-1));
 
    int i;
-   for (i = 0; i < seqCounter; i++){
+   for (i = 0; i < seqCounter-1; i++){
       printf("SequenceNumber\t%d\n", b[i].sequenceNumber);
       printf("fileDescriptor\t%d\n", b[i].fileDescriptor);
       printf("bytes remaining\t%d\n", b[i].bytesRemaining);
-      printf("quantum\t%d\n", b[i].quantum);
+      printf("quantum\t\t%d\n", b[i].quantum);
       printf("\n");
    }
    return 0;
@@ -258,6 +259,10 @@ RequestControlBlock * scheduler(RequestControlBlock rct[]){
    }
    else if (mlfb && !sjf && !rr) {
       // do mlfb quantum
+   }
+   else {
+      printf("Some weird error occured, no scheduler selected\n");
+      abort();
    }
 
    return rct;
@@ -329,20 +334,20 @@ int main( int argc, char **argv ) {
    //allocate memory for request control table
    //rcbPtr RequestControlBlock = (rcbPtr)malloc(sizeof(RequestControlBlock));
 
-   network_wait();
    RequestControlBlock table[64];
-
-   for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
-   {
-      RequestControlBlock b;
-      b = process_client(fd);
-      table[seqCounter] = b;
-   }
-      printrcb(table);
+   network_wait();
 
 
    for( ;; ) {                                       // main loop 
       //network_wait();                                 // wait for clients 
+      for( fd = network_open(); fd >= 0; fd = network_open() ) // get control blocks 
+      {
+         RequestControlBlock b;
+         b = process_client(fd);
+         table[seqCounter-1] = b;
+
+         printrcb(table);
+      }
 
       for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
       {
