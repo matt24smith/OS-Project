@@ -109,6 +109,7 @@ static void serve_client( int fd ) {
       }
 
 
+
       do {                                          /* loop, read & send file */
         len = fread( buffer, 1, MAX_HTTP_SIZE, fin );  /* read file chunk */
         if( len < 0 ) {                             /* check for errors */
@@ -124,6 +125,73 @@ static void serve_client( int fd ) {
     }
   }
   close( fd );                                     /* close client connectuin*/
+}
+
+static void process_client( int fd ) {
+
+  static char *buffer;                              /* request buffer */
+  char *req = NULL;                                 /* ptr to req file */
+  char *brk;                                        /* state used by strtok */
+  char *tmp;                                        /* error checking ptr */
+  FILE *fin;                                        /* input file handle */
+  int len;                                          /* length of data read */
+
+  // TODO: add 8kb, 64kb, and RR buffer queues for MLFB scheduling
+  if( !buffer ) {                                   /* 1st time, alloc buffer */
+
+    buffer = malloc( MAX_HTTP_SIZE );
+
+    if( !buffer ) {                                 /* error check */
+      perror( "Error while allocating memory" );
+      abort();
+    }
+  }
+
+  memset( buffer, 0, MAX_HTTP_SIZE );
+  if( read( fd, buffer, MAX_HTTP_SIZE ) <= 0 ) {    /* read req from client */
+    perror( "Error while reading request" );
+    abort();
+  } 
+
+  /* standard requests are of the form
+   *   GET /foo/bar/qux.html HTTP/1.1
+   * We want the second token (the file path).
+   */
+  tmp = strtok_r( buffer, " ", &brk );              /* parse request */
+  if( tmp && !strcmp( "GET", tmp ) ) {
+    req = strtok_r( NULL, " ", &brk );
+  }
+
+ 
+  if( !req ) {                                      /* is req valid? */
+    len = sprintf( buffer, "HTTP/1.1 400 Bad request\n\n" );
+    write( fd, buffer, len );                       /* if not, send err */
+  } else {                                          /* if so, open file */
+    req++;                                          /* skip leading / */
+    fin = fopen( req, "r" );                        /* open file */
+    if( !fin ) {                                    /* check if successful */
+      len = sprintf( buffer, "HTTP/1.1 404 File not found\n\n" );  
+      write( fd, buffer, len );                     /* if not, send err */
+    } else {                                        /* if so, send file */
+      len = sprintf( buffer, "HTTP/1.1 200 OK\n\n" );/* send success code */
+  
+      // Read file size
+      write( fd, buffer, len );
+      struct stat finfo;
+      int file = 0;
+      file = fileno(fin);
+      if (fstat(file, &finfo) == 0) {
+         printf("File %d size: %ld\n", file, finfo.st_size);
+      }
+      else {
+         printf("Stat error:(\n");
+      }
+
+      fclose( fin );
+    }
+  }
+  close( fd );                                     /* close client connectuin*/
+
 }
 
 
@@ -191,35 +259,15 @@ int main( int argc, char **argv ) {
   }
 
   //allocate memory for request control table
-  rcbPtr RequestControlBlock = (rcbPtr)malloc(sizeof(RequestControlBlock)*64);
+  rcbPtr RequestControlBlock = (rcbPtr)malloc(sizeof(RequestControlBlock));
 
   for( ;; ) {                                       // main loop 
     network_wait();                                 // wait for clients 
 
     for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
     {
-      /*
-      struct stat finfo;
-      static char *buffer;
-      char * brk; 
-      buffer = malloc( MAX_HTTP_SIZE );
-      memset (buffer, 0, MAX_HTTP_SIZE );
-      read(fd, 0, MAX_HTTP_SIZE);
-      char * tmp;
-      char * req = NULL;
-      tmp = strtok_r( buffer, " ", &brk );              // parse request 
-      req = strtok_r(NULL, " ", &brk );
-      lseek(fd, 1, SEEK_SET);
-
-      if( fstat(fd, &finfo) == 0 ){ 
-        printf("Size of file %d is %zu \n", fd, finfo.st_size); //This always returns a size of 0
-        printf("Request:\t%s\t%s\n", tmp, req);
-      }
-      else {
-        printf("There was an error with stat :(\n");
-      }
-      */
-      serve_client( fd );            // process each client 
+      process_client(fd);
+      //serve_client( fd );            // process each client 
     }
   }
 
