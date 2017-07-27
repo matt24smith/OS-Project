@@ -37,7 +37,7 @@ typedef struct RequestControlBlock{
    char fname[100];        // req name of file
 }RequestControlBlock; 
 
-typedef struct RequestControlBlock * rcbPtr;
+//typedef struct RequestControlBlock * rcbPtr;
 
 bool rr = false;
 bool sjf = false;
@@ -124,10 +124,10 @@ bool blockExists(RequestControlBlock newBlock, RequestControlBlock rct[]){
    for (i = 0; i < seqCounter-1; i++){
       if (strcmp(newBlock.fname, rct[i].fname)==0 ){
          return true;
-     //    printf("Block exists\n");
+         //    printf("Block exists\n");
       }
    }
-   
+
    return false;
 }
 
@@ -189,7 +189,6 @@ RequestControlBlock process_client( int fd, RequestControlBlock rct[] ) {
          int file = 0;
          file = fileno(fin);
          if (fstat(file, &finfo) == 0) {
-            printf("File %d size: %ld\t\t(process_client)\n", file, finfo.st_size);
 
             newBlock.sequenceNumber = seqCounter;
             newBlock.fileDescriptor = fd;
@@ -235,12 +234,13 @@ int printrcb(RequestControlBlock b[]){
       printf("quantum\t\t%d\n", b[i].quantum);
       printf("\n");
    }
+   printf("=====================================================\n");
    return 0;
 
 }
 
 
-RequestControlBlock * scheduler(RequestControlBlock rct[]){
+RequestControlBlock *scheduler(RequestControlBlock * rct){
    int i, j, pos;
    int n = seqCounter;
    RequestControlBlock temp;
@@ -271,6 +271,38 @@ RequestControlBlock * scheduler(RequestControlBlock rct[]){
    }
 
    return rct;
+}
+
+void scheduler2(RequestControlBlock * rct){
+   int i, j, pos;
+   int n = seqCounter;
+   RequestControlBlock temp;
+
+   if (sjf && !rr && !mlfb){
+      for (i = 0; i < n; i++){
+         pos = i;
+         for (j = i+1; j<n; j++){
+            if (rct[j].bytesRemaining<rct[pos].bytesRemaining){
+               pos = j;
+            }
+         }
+         temp = rct[i];
+         rct[i]=rct[pos];
+         rct[pos] = temp;
+
+      }
+   }
+   else if (rr && !sjf && !mlfb){
+      // do round robin quantum
+   }
+   else if (mlfb && !sjf && !rr) {
+      // do mlfb quantum
+   }
+   else {
+      printf("Some weird error occured, no scheduler selected\n");
+      abort();
+   }
+
 }
 
 
@@ -337,8 +369,9 @@ int main( int argc, char **argv ) {
    }
 
    RequestControlBlock table[64];
-   network_wait();
+   //RequestControlBlock *table = malloc (64 * sizeof(RequestControlBlock));
 
+   network_wait();
 
    for( ;; ) {                                       // main loop 
       //network_wait();                                 // wait for clients 
@@ -354,7 +387,49 @@ int main( int argc, char **argv ) {
             seqCounter++;
          }
          // print block table
+         //table = scheduler(table);
+
+
+
+
+         int k, j;
+         int n = seqCounter-1;
+         RequestControlBlock temp;
+
+         if (sjf && !rr && !mlfb && seqCounter > 1){
+            for (k = 0; k < n; k++){
+               for (j = k; j<n; j++){
+                  if (table[j].bytesRemaining < table[k].bytesRemaining ){
+                     temp = table[k];
+                     table[k]=table[j];
+                     table[j] = temp;
+                  }
+               }
+            }
+         }
+         else if (rr && !sjf && !mlfb){
+            // do round robin quantum
+         }
+         else if (mlfb && !sjf && !rr) {
+            // do mlfb quantum
+         }
+         else {
+            printf("Some weird error occured, no scheduler selected\n");
+            abort();
+         }
+
+
+
+
+
+
+
+
+
+
+
          printrcb(table);
+
       }
 
       for( fd = network_open(); fd >= 0; fd = network_open() ) // get clients 
