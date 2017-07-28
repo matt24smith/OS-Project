@@ -121,6 +121,7 @@ static void serve_client( int fd ) {
 RequestControlBlock serve_client2( RequestControlBlock rcb ) {
 
    int fd = rcb.fileDescriptor;
+   network_open( fd );
 
    static char *buffer;                              /* request buffer */
    char *req = NULL;                                 /* ptr to req file */
@@ -171,9 +172,9 @@ RequestControlBlock serve_client2( RequestControlBlock rcb ) {
 
          do {                                          /* loop, read & send file */
             len = fread( buffer, 1, MAX_HTTP_SIZE, fin );  /* read file chunk */
-            
+
             //len = rcb.quantum;
-            
+
             if( len < 0 ) {                             /* check for errors */
                perror( "Error while writing to client" );
             } 
@@ -183,7 +184,7 @@ RequestControlBlock serve_client2( RequestControlBlock rcb ) {
                   perror( "Error while writing to client" );
                }
             }
-            
+
 
             rcb.bytesRemaining-=rcb.quantum;
 
@@ -202,7 +203,6 @@ RequestControlBlock serve_client2( RequestControlBlock rcb ) {
 }
 
 
-
 bool blockExists(RequestControlBlock newBlock, RequestControlBlock rct[]){
    int i;
 
@@ -216,100 +216,58 @@ bool blockExists(RequestControlBlock newBlock, RequestControlBlock rct[]){
    return false;
 }
 
+
 RequestControlBlock process_client(RequestControlBlock newBlock, RequestControlBlock rct[] ) {
    static char *buffer;                              /* request buffer */
+   FILE *fin;                                        /* input file handle */
    char *req = NULL;                                 /* ptr to req file */
    char *brk;                                        /* state used by strtok */
    char *tmp;                                        /* error checking ptr */
-   FILE *fin;                                        /* input file handle */
-   int len;                                          /* length of data read */
+   char fnametemp[100];
+   int file = 0;
 
    int fd = newBlock.fileDescriptor;
-
-   //RequestControlBlock newBlock;
-   char fnametemp[100];
-
-   // TODO: add 8kb, 64kb, and RR buffer queues for MLFB scheduling
-   if( !buffer ) {                                   /* 1st time, alloc buffer */
-
-      buffer = malloc( MAX_HTTP_SIZE );
-
-      if( !buffer ) {                                 /* error check */
-         perror( "Error while allocating memory" );
-         abort();
-      }
-   }
-
-   memset( buffer, 0, MAX_HTTP_SIZE );
-   if( read( fd, buffer, MAX_HTTP_SIZE ) <= 0 ) {    /* read req from client */
-      perror( "Error while reading request" );
-      abort();
-   } 
-
-   /* standard requests are of the form
-    *   GET /foo/bar/qux.html HTTP/1.1
-    * We want the second token (the file path).
-    */
-   tmp = strtok_r( buffer, " ", &brk );              /* parse request */
+ 
+   //check file to init control block
+   buffer = malloc( MAX_HTTP_SIZE );
+   read( fd, buffer, MAX_HTTP_SIZE ) ;
+   tmp = strtok_r( buffer, " ", &brk );
    if( tmp && !strcmp( "GET", tmp ) ) {
       req = strtok_r( NULL, " ", &brk );
    }
+   req++;
+   
+   fin = fopen( req, "r" );  
+   
+   file = fileno(fin);
+   
+   struct stat finfo;
+   if (fstat(file, &finfo) == 0) {
 
- 
-//   if( !req ) 
-//   {                                      /* is req valid? */
-//      len = sprintf( buffer, "HTTP/1.1 400 Bad request\n\n" );
-//      write( fd, buffer, len );                       /* if not, send err */
-//   } 
-//   else 
-//   {                                          /* if so, open file */
-      req++;                                          /* skip leading / */
-      strcpy(fnametemp, req);
-      fin = fopen( req, "r" );                        /* open file */
-      if( !fin ) 
-      {                                    /* check if successful */
-         len = sprintf( buffer, "HTTP/1.1 404 File not found\n\n" );  
-         write( fd, buffer, len );                     /* if not, send err */
-      } 
-      else 
-      {                                        /* if so, send file */
-         len = sprintf( buffer, "HTTP/1.1 200 OK\n\n" );/* send success code */
+      newBlock.sequenceNumber = seqCounter;
+      newBlock.fileName = fin;
+      newBlock.bytesRemaining = finfo.st_size;
 
-         // Read file size
-         write( fd, buffer, len );
-         struct stat finfo;
-         int file = 0;
-         file = fileno(fin);
-         if (fstat(file, &finfo) == 0) {
+      strcpy(newBlock.fname, fnametemp);
 
-            newBlock.sequenceNumber = seqCounter;
-            newBlock.fileDescriptor = fd;
-            newBlock.fileName = fin;
-            newBlock.bytesRemaining = finfo.st_size;
-
-            strcpy(newBlock.fname, fnametemp);
-
-            if (sjf && !rr && !mlfb){
-               newBlock.quantum = finfo.st_size;
-            }
-            else if (rr && !sjf && !mlfb){
-               // do round robin quantum
-               newBlock.quantum = 8192;
-            }
-            else if (mlfb && !sjf && !rr) {
-               // do mlfb quantum
-            }
-
-         }
-         else {
-            printf("Error accessing file :(\n");
-            abort();
-         }
-
-         fclose( fin );
+      if (sjf && !rr && !mlfb){
+         newBlock.quantum = finfo.st_size;
       }
-   //}
+      else if (rr && !sjf && !mlfb){
+         // do round robin quantum
+         newBlock.quantum = 8192;
+      }
+      else if (mlfb && !sjf && !rr) {
+         // do mlfb quantum
+      }
 
+   }
+   else {
+      printf("Error accessing file :(\n");
+      abort();
+   }
+
+   fclose( fin );
 
    close( fd );                                     /* close client connectuin*/
 
@@ -412,17 +370,18 @@ int main( int argc, char **argv ) {
          RequestControlBlock b;
          b.fileDescriptor = fd;
          b = process_client(b, table);
+         
 
          // check if block exists, add to table if false
          if (!blockExists(b, table)){
             table[seqCounter-1] = b;
             seqCounter++;
          }
-         
+
          int k, j;
          int n = seqCounter-1;
          RequestControlBlock temp;
-   
+
          //Do SJF scheduling
          if (sjf && !rr && !mlfb && seqCounter > 1){
             for (k = 0; k < n; k++){
@@ -447,24 +406,19 @@ int main( int argc, char **argv ) {
             printf("Some weird error occured, no scheduler selected\n");
             abort();
          }
+         
+         printrcb(table);
 
-
-         if (table[0].bytesRemaining > 0) 
+         int i; 
+         for (i = 0; i < seqCounter-1; i++)
          {
-            table[0] = serve_client2(table[0]);
-         }
-         else 
-         {
-            int i;
-            for (i = 1; i < sizeof(table); i++)
+            if (table[i].bytesRemaining > 0) 
             {
-               table[i-1] = table[i];
+               table[i] = serve_client2(table[i]);
+               break;
             }
 
          }
-
-
-         printrcb(table);
 
 
       }
@@ -473,15 +427,15 @@ int main( int argc, char **argv ) {
       //{
       //   serve_client( fd );            // process each client 
       //}
-      
+
       //for (table[0].fileDescriptor = network_open(); 
       //     table[0].fileDescriptor >= 0; 
       //     table[0].fileDescriptor = network_open() ) {
 
 
-         // if RR shift rcb to last pos in table
+      // if RR shift rcb to last pos in table
       //}
-      
+
 
       network_wait();
    }
