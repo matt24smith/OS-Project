@@ -223,6 +223,9 @@ RequestControlBlock process_client( int fd, RequestControlBlock rct[] ) {
 }
 
 int printrcb(RequestControlBlock b[]){
+   //When given a request control table, this function will print the values of
+   //the blocks populating the table
+
    printf("Number of control blocks:\t%d\n", (seqCounter-1));
 
    int i;
@@ -241,6 +244,8 @@ int printrcb(RequestControlBlock b[]){
 
 
 RequestControlBlock *scheduler(RequestControlBlock * rct){
+   // implements scheduling algorithms for task 1
+   
    int i, j, pos;
    int n = seqCounter;
    RequestControlBlock temp;
@@ -273,37 +278,6 @@ RequestControlBlock *scheduler(RequestControlBlock * rct){
    return rct;
 }
 
-void scheduler2(RequestControlBlock * rct){
-   int i, j, pos;
-   int n = seqCounter;
-   RequestControlBlock temp;
-
-   if (sjf && !rr && !mlfb){
-      for (i = 0; i < n; i++){
-         pos = i;
-         for (j = i+1; j<n; j++){
-            if (rct[j].bytesRemaining<rct[pos].bytesRemaining){
-               pos = j;
-            }
-         }
-         temp = rct[i];
-         rct[i]=rct[pos];
-         rct[pos] = temp;
-
-      }
-   }
-   else if (rr && !sjf && !mlfb){
-      // do round robin quantum
-   }
-   else if (mlfb && !sjf && !rr) {
-      // do mlfb quantum
-   }
-   else {
-      printf("Some weird error occured, no scheduler selected\n");
-      abort();
-   }
-
-}
 
 
 /* This function is where the program starts running.
@@ -386,16 +360,15 @@ int main( int argc, char **argv ) {
             table[seqCounter-1] = b;
             seqCounter++;
          }
-         // print block table
-         //table = scheduler(table);
 
 
 
-
+         
          int k, j;
          int n = seqCounter-1;
          RequestControlBlock temp;
-
+   
+         //Do SJF scheduling
          if (sjf && !rr && !mlfb && seqCounter > 1){
             for (k = 0; k < n; k++){
                for (j = k; j<n; j++){
@@ -407,22 +380,18 @@ int main( int argc, char **argv ) {
                }
             }
          }
+         // Do RR sscheduling 
          else if (rr && !sjf && !mlfb){
-            // do round robin quantum
+
          }
+         // Do multilevel feedback queue
          else if (mlfb && !sjf && !rr) {
-            // do mlfb quantum
+
          }
          else {
             printf("Some weird error occured, no scheduler selected\n");
             abort();
          }
-
-
-
-
-
-
 
 
 
