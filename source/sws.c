@@ -202,6 +202,7 @@ RequestControlBlock process_client( int fd, RequestControlBlock rct[] ) {
             }
             else if (rr && !sjf && !mlfb){
                // do round robin quantum
+               newBlock.quantum = 8192 
             }
             else if (mlfb && !sjf && !rr) {
                // do mlfb quantum
@@ -241,43 +242,6 @@ int printrcb(RequestControlBlock b[]){
    return 0;
 
 }
-
-
-RequestControlBlock *scheduler(RequestControlBlock * rct){
-   // implements scheduling algorithms for task 1
-   
-   int i, j, pos;
-   int n = seqCounter;
-   RequestControlBlock temp;
-
-   if (sjf && !rr && !mlfb){
-      for (i = 0; i < n; i++){
-         pos = i;
-         for (j = i+1; j<n; j++){
-            if (rct[j].bytesRemaining<rct[pos].bytesRemaining){
-               pos = j;
-            }
-         }
-         temp = rct[i];
-         rct[i]=rct[pos];
-         rct[pos] = temp;
-
-      }
-   }
-   else if (rr && !sjf && !mlfb){
-      // do round robin quantum
-   }
-   else if (mlfb && !sjf && !rr) {
-      // do mlfb quantum
-   }
-   else {
-      printf("Some weird error occured, no scheduler selected\n");
-      abort();
-   }
-
-   return rct;
-}
-
 
 
 /* This function is where the program starts running.
