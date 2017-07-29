@@ -290,6 +290,34 @@ int printrcb(RequestControlBlock b[]){
 
 }
 
+/*
+void thread_routine()
+//Some pseudocode describing a thread routine for partial marks
+
+{
+   enter infinite loop
+   {
+      if (there are any requests in the work_queue)
+      {
+         dequeue a request and process it in the same manner as in Task 1.
+      }
+      else if (there are no requests in the work_queue and there are requests in the scheduler's ready queue to be processed)
+      {
+         Select the next request and process it in the same manner as in Task 1.
+      }
+      else
+      {
+
+      // Since there are no requests in the work_queue or the scheduler, 
+      // the thread should suspend itself until it is awakened by the main thread
+
+         pthread_mutex_lock(&mutex);
+         pthread_cond_wait(&condition, &mutex);
+      }
+   }
+}
+*/
+
 
 /* This function is where the program starts running.
  *    The function first parses its command line parameters to determine port #
@@ -380,8 +408,13 @@ int main( int argc, char **argv ) {
       for( fd = network_open(); fd >= 0; fd = network_open() ) // get control blocks 
       {
 
+
+
          RequestControlBlock b;
          b.fileDescriptor = fd;
+         
+         //pthread_cond_signal(&condition);
+
          b = process_client(b);
 
          // check if block exists, add to table if false
