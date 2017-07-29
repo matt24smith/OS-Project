@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #include "network.h"
 
@@ -40,6 +41,9 @@ typedef struct RequestControlBlock{
 bool rr = false;
 bool sjf = false;
 bool mlfb = false;
+
+pthread_mutex_t mutex;
+pthread_cond_t condition;
 
 int seqCounter = 1; //sequence counter. increments for each request
 
@@ -123,7 +127,7 @@ static void serve_client( int fd ) {
 RequestControlBlock process_client(RequestControlBlock newBlock) {
    //This function initializes a control block entry to be processed
    //in the request control table, and later served by serve_client
-   
+
    static char *buffer;                              /* request buffer */
    FILE *fin;                                        /* input file handle */
    char *req = NULL;                                 /* ptr to req file */
@@ -219,7 +223,7 @@ RequestControlBlock serve_client2( RequestControlBlock rcb ) {
          buffer[pch] = ch;
          pch++;
       }
-     
+
       len = pch;
 
       if( len < 0 ) {                             /* check for errors */
@@ -233,7 +237,7 @@ RequestControlBlock serve_client2( RequestControlBlock rcb ) {
       }
 
       rcb.bytesRemaining-=rcb.quantum;
-      
+
 
       //For round robin scheduling:
       //break out of the loop and continue the rest of the remaining bytes 
@@ -353,12 +357,29 @@ int main( int argc, char **argv ) {
 
    RequestControlBlock table[64];
    network_init( port );                             // init network module 
-   network_wait();
+
+   // MULTITHREADING PROTOTYPE
+   /*
+      int rc;
+      pthread_t threads[argv[3]];
+      for (int i = 0; i < argv[3]; ++i)
+      {
+      rc = pthread_create(&threads[i], NULL, thread_routine, NULL);
+      if (rc != 0)
+      {
+      printf("Error: pthread_create() returned: %d\n", rc);
+      abort();
+      }
+      }
+
+*/
+   network_wait();    //call once before starting loop and again at end of loop
 
    for( ;; ) {                                       // main loop 
 
       for( fd = network_open(); fd >= 0; fd = network_open() ) // get control blocks 
       {
+
          RequestControlBlock b;
          b.fileDescriptor = fd;
          b = process_client(b);
